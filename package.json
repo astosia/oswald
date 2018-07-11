@@ -54,24 +54,6 @@
                     "type": "raw"
                 },
                 {
-                    "file": "images/bt-icon",
-                    "name": "IMAGE_BT_ICON",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
-                    "file": "images/sunset",
-                    "name": "IMAGE_SUNSET_ICON",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
-                    "file": "images/Sunset2",
-                    "name": "IMAGE_SUNSET_ICON2",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
                     "file": "fonts/Weathericons",
                     "name": "FONT_WEATHERICONS_18",
                     "targetPlatforms": null,

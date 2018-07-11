@@ -15,7 +15,7 @@ static GFont //FontHour,
 FontDate,
 FontDate2,
 FontBattery, 
-FontIcon, 
+//FontIcon, 
 FontIcon2, 
 FontIcon3
 ;
@@ -24,11 +24,9 @@ FFont* time_font;
 
 static Window * s_window;
 
-static Layer * s_canvas_to_be_rotated;
 static Layer * s_canvas;
 static Layer * s_canvas_bt_icon;
 static Layer * s_canvas_qt_icon;
-//static Layer * s_canvas_step_icon;
 
 Layer * hour_area_layer;
 Layer * minute_area_layer;
@@ -262,7 +260,7 @@ void update_minute_area_layer(Layer *a, GContext* ctx8) {
 
 //Update main layer
 
-static void layer_update_proc_pre_rotate(Layer * layer1, GContext * ctx1){
+static void layer_update_proc(Layer * layer1, GContext * ctx){
   // Create Rects
   GRect bounds1 = layer_get_bounds(layer1);
   
@@ -273,19 +271,12 @@ static void layer_update_proc_pre_rotate(Layer * layer1, GContext * ctx1){
   
   
    //Build display
-  graphics_context_set_fill_color(ctx1, settings.Back1Color);
-  graphics_fill_rect(ctx1, bounds1, 0, GCornerNone);
-  graphics_context_set_fill_color(ctx1, settings.FrameColor1);
-  graphics_fill_rect(ctx1, MediumBand,4,GCornersAll);
+  graphics_context_set_fill_color(ctx, settings.Back1Color);
+  graphics_fill_rect(ctx, bounds1, 0, GCornerNone);
+  graphics_context_set_fill_color(ctx, settings.FrameColor1);
+  graphics_fill_rect(ctx, MediumBand,4,GCornersAll);
  
   
-      
-}
-
-
-static void layer_update_proc(Layer * layer, GContext * ctx){
-  // Create Rects
-  GRect bounds3 = layer_get_bounds(layer);
 
 GRect ampmRect = 
     (PBL_IF_ROUND_ELSE(
@@ -484,7 +475,6 @@ static void prv_inbox_received_handler(DictionaryIterator * iter, void * context
   
   
   //Update colors
-  layer_mark_dirty(s_canvas_to_be_rotated);
   layer_mark_dirty(s_canvas);
   layer_mark_dirty(s_canvas_bt_icon);
   layer_mark_dirty(s_canvas_qt_icon);
@@ -502,10 +492,6 @@ static void prv_inbox_received_handler(DictionaryIterator * iter, void * context
 static void window_load(Window * window){
   Layer * window_layer = window_get_root_layer(window);
   GRect bounds4 = layer_get_bounds(window_layer);
-  
-  s_canvas_to_be_rotated = layer_create(bounds4);
-    layer_set_update_proc(s_canvas_to_be_rotated, layer_update_proc_pre_rotate);
-    layer_add_child(window_layer, s_canvas_to_be_rotated);
   
   s_canvas = layer_create(bounds4);
     layer_set_update_proc(s_canvas, layer_update_proc);
@@ -531,14 +517,13 @@ static void window_load(Window * window){
 
 
 static void window_unload(Window * window){
-  layer_destroy(s_canvas_to_be_rotated);
   layer_destroy(s_canvas);
   layer_destroy(hour_area_layer);
   layer_destroy(minute_area_layer);
   layer_destroy(s_canvas_bt_icon);
   layer_destroy(s_canvas_qt_icon);
   window_destroy(s_window);
-  fonts_unload_custom_font(FontIcon);
+//  fonts_unload_custom_font(FontIcon);
   fonts_unload_custom_font(FontIcon2);
   fonts_unload_custom_font(FontIcon3);
   ffont_destroy(time_font);
@@ -561,7 +546,6 @@ void main_window_update(int hours, int minutes, int weekday, int day, int month)
   s_month = month;
   
   layer_mark_dirty(s_canvas);
-  layer_mark_dirty(s_canvas_to_be_rotated);
   layer_mark_dirty(s_canvas_bt_icon);
   layer_mark_dirty(s_canvas_qt_icon);
   layer_mark_dirty(hour_area_layer);
@@ -574,7 +558,7 @@ void main_window_update(int hours, int minutes, int weekday, int day, int month)
 static void tick_handler(struct tm * time_now, TimeUnits changed){
 
   main_window_update(time_now -> tm_hour, time_now -> tm_min, time_now -> tm_wday, time_now -> tm_mday, time_now -> tm_mon);
-  //update_time();
+
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Tick at %d", time_now -> tm_min);
     
   }
@@ -594,7 +578,7 @@ static void init(){
   s_month=t->tm_mon;
   //Register and open
   app_message_register_inbox_received(prv_inbox_received_handler);
-  app_message_open(512, 512);
+  app_message_open(128, 128);
   // Load Fonts
  
   time_font =  ffont_create_from_resource(RESOURCE_ID_OSWALD_FFONT);
@@ -603,7 +587,7 @@ static void init(){
   FontDate = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   FontDate2 = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
   FontBattery= fonts_get_system_font(FONT_KEY_GOTHIC_14);
-  FontIcon = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_WEATHERICONS_20));
+  //FontIcon = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_WEATHERICONS_20));
   FontIcon2 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DRIPICONS_16));
   FontIcon3 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DRIPICONS_18));
  
