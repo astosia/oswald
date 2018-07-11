@@ -586,7 +586,7 @@ static void init(){
  // time_font = ffont_create_from_resource(RESOURCE_ID_FONT_DINCONBOLD);
   FontDate = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   FontDate2 = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
-  FontBattery= fonts_get_system_font(FONT_KEY_GOTHIC_14);
+  FontBattery= fonts_get_system_font(PBL_IF_ROUND_ELSE(FONT_KEY_GOTHIC_14,FONT_KEY_GOTHIC_18_BOLD));
   //FontIcon = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_WEATHERICONS_20));
   FontIcon2 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DRIPICONS_16));
   FontIcon3 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DRIPICONS_18));
