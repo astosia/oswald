@@ -3,7 +3,8 @@
     "dependencies": {
         "pebble-clay": "^1.0.4",
         "pebble-fctx": "^1.5.0",
-        "pebble-fctx-compiler": "^1.2.2"
+        "pebble-fctx-compiler": "^1.2.2",
+        "pebble-scalable": "^2.1.0"
     },
     "keywords": [],
     "name": "oswald-vertical",
@@ -24,7 +25,10 @@
             "Text4Color",
             "Text5Color",
             "FrameColor1",
-            "Text6Color"
+            "Text6Color",
+            "AddZero12h",
+            "RemoveZero24h",
+            "BTVibeOn"
         ],
         "projectType": "native",
         "resources": {
@@ -54,27 +58,32 @@
                     "type": "raw"
                 },
                 {
-                    "file": "fonts/Weathericons",
-                    "name": "FONT_WEATHERICONS_18",
-                    "targetPlatforms": null,
-                    "type": "font"
-                },
-                {
-                    "file": "fonts/Weathericons",
-                    "name": "FONT_WEATHERICONS_20",
-                    "targetPlatforms": null,
-                    "type": "font"
-                },
-                {
-                    "file": "fonts/Dripicons",
+                    "file": "fonts/dripicons.ttf",
                     "name": "FONT_DRIPICONS_16",
                     "targetPlatforms": null,
                     "type": "font"
                 },
                 {
-                    "file": "fonts/Dripicons",
+                    "file": "fonts/dripicons.ttf",
                     "name": "FONT_DRIPICONS_18",
-                    "targetPlatforms": null,
+                    "targetPlatforms": [
+                        "aplite",
+                        "basalt",
+                        "chalk",
+                        "diorite"
+                    ],
+                    "type": "font"
+                },
+                {
+                    "file": "fonts/dripicons.ttf",
+                    "name": "FONT_DRIPICONS_18",
+                    "targetPlatforms": ["emery"],
+                    "type": "font"
+                },
+                {
+                    "file": "fonts/dripicons.ttf",
+                    "name": "FONT_DRIPICONS_20",
+                    "targetPlatforms": ["emery"],
                     "type": "font"
                 }
             ]
@@ -84,12 +93,13 @@
             "aplite",
             "basalt",
             "chalk",
-            "diorite"
+            "diorite",
+            "emery"
         ],
         "uuid": "9fc03c0d-2dc6-4467-8f03-0b76224f50b7",
         "watchapp": {
             "watchface": true
         }
     },
-    "version": "1.1.0"
+    "version": "2.0.0"
 }

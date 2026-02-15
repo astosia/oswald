@@ -14,6 +14,9 @@ typedef struct ClaySettings {
   GColor Text6Color;
   GColor HourColor;
   GColor MinColor;
+  bool RemoveZero24h;
+  bool AddZero12h;
+  bool BTVibeOn;
  
  // bool Rotate;
  // bool RightLeft;

@@ -4,6 +4,7 @@
 #include <pebble-fctx/fctx.h>
 #include <pebble-fctx/fpath.h>
 #include <pebble-fctx/ffont.h>
+#include <pebble-scalable/pebble-scalable.h>
 
 #define ROUND_VERTICAL_PADDING 15
 #define ROTATION_SETTING_DEFAULT 0
@@ -50,6 +51,9 @@ settings.FrameColor1 = GColorCobaltBlue;
   settings.Text6Color = GColorWhite;
   settings.HourColor = GColorWhite;
   settings.MinColor = GColorWhite;
+  settings.AddZero12h = false;
+  settings.RemoveZero24h = false;
+  settings.BTVibeOn = true;
  }
 
 bool BTOn=true;
@@ -80,7 +84,7 @@ static void bluetooth_vibe_icon (bool connected) {
 
   layer_set_hidden(s_canvas_bt_icon, connected);
 
-  if(!connected && !quiet_time_is_active()) {
+  if(!connected && !quiet_time_is_active() && settings.BTVibeOn) {
     // Issue a vibrating alert
     vibes_double_pulse();
   }
@@ -97,10 +101,9 @@ void update_hour_area_layer(Layer *l, GContext* ctx7) {
   GRect bounds = layer_get_unobstructed_bounds(l);
 
   #ifdef PBL_ROUND
- //   bounds = GRect(0, ROUND_VERTICAL_PADDING, bounds.size.w, bounds.size.h - ROUND_VERTICAL_PADDING * 2);
-     bounds = GRect(0, 0,180, 90);
+    bounds = GRect(0, 0,180, 90);
   #else
-     bounds = GRect(0,0,144,84);
+     bounds = GRect(0,0,bounds.size.w,bounds.size.h/2);
   #endif
 
   // initialize FCTX, the fancy 3rd party drawing library that all the cool kids use
@@ -112,17 +115,11 @@ void update_hour_area_layer(Layer *l, GContext* ctx7) {
 
 
   // calculate font size
- // int font_size = 4 * bounds.size.h / 7;
-  //int font_size = bounds.size.h/2.5; //opensans
- // int font_size = bounds.size.h * 1.2 ; //steelfish
-#ifdef PBL_ROUND
+ #ifdef PBL_ROUND
   int font_size = bounds.size.h * 1.0; 
  #else
   int font_size = bounds.size.h * 1.1;
   #endif
-  // steelfish metrics
-//  int v_padding = bounds.size.h / 16;
-//  int h_padding = bounds.size.w / 16;
   int h_adjust = 0;
   int v_adjust = 0;
 
@@ -134,49 +131,46 @@ void update_hour_area_layer(Layer *l, GContext* ctx7) {
 
   // if it's a round watch, EVERYTHING CHANGES
   #ifdef PBL_ROUND
-//    v_adjust = ROUND_VERTICAL_PADDING;
     v_adjust = 0;
 
   #else
     // for rectangular watches, adjust X position based on sidebar position
-  //    h_adjust -= ACTION_BAR_WIDTH / 2 + 1;
    h_adjust = 0;
   #endif
 
   FPoint time_pos;
   fctx_begin_fill(&fctx);
   fctx_set_text_em_height(&fctx, time_font, font_size);
-//  fctx_set_text_em_height(&fctx, minutes_font, font_size);
 
   int hourdraw;
   char hournow[8];
-  if (clock_is_24h_style()){
+  if (clock_is_24h_style() && !settings.RemoveZero24h){
     hourdraw=s_hours;
     snprintf(hournow,sizeof(hournow),"%02d",hourdraw);
     }
-  else {
+  else if (clock_is_24h_style() && settings.RemoveZero24h){
+    hourdraw=s_hours;
+    snprintf(hournow,sizeof(hournow),"%d",hourdraw);
+  }
+  else if (!settings.AddZero12h){
     if (s_hours==0 || s_hours==12){
       hourdraw=12;
     }
     else hourdraw=s_hours%12;    
   snprintf(hournow, sizeof(hournow), "%d", hourdraw);
- // hourdraw = hourdraw1+(('0'==hourdraw1[0])?1:0));
+   }
+  else{
+    if (s_hours==0 || s_hours==12){
+      hourdraw=12;
+    }
+    else hourdraw=s_hours%12;    
+  snprintf(hournow, sizeof(hournow), "%02d", hourdraw);
   }
-  
-  //time_pos2.y = INT_TO_FIXED(bounds.size.h - v_padding2 + v_adjust2);
- // fctx_set_offset(&fctx1, time_pos2);
- // fctx_draw_string(&fctx1, minnow, time_font, GTextAlignmentCenter, FTextAnchorBaseline);
- // fctx_end_fill(&fctx1);
-  
+    
   // draw hours
+  time_pos.x = INT_TO_FIXED(PBL_IF_ROUND_ELSE(90, bounds.size.w*2/3) + h_adjust);
+  time_pos.y = INT_TO_FIXED(PBL_IF_ROUND_ELSE(48, bounds.size.h/2)  + v_adjust);
 
-//  time_pos.y = INT_TO_FIXED(v_padding + v_adjust);
-//  time_pos.x = INT_TO_FIXED(bounds.size.w / 2);
- // time_pos.x = INT_TO_FIXED(bounds.size.w / 4 + h_adjust);
- //   time_pos.x = INT_TO_FIXED(bounds.size.w / 4 + h_adjust); //this one works when center justified
-  time_pos.x = INT_TO_FIXED(PBL_IF_ROUND_ELSE(90, 96) + h_adjust);
-  time_pos.y = INT_TO_FIXED(PBL_IF_ROUND_ELSE(48, 42)  + v_adjust);
-//  fctx_set_pivot(&fctx, time_pos);
   fctx_set_offset(&fctx, time_pos);
   fctx_draw_string(&fctx, hournow, time_font, PBL_IF_ROUND_ELSE(GTextAlignmentCenter,GTextAlignmentRight), FTextAnchorMiddle);
   fctx_end_fill(&fctx);
@@ -189,12 +183,11 @@ void update_minute_area_layer(Layer *a, GContext* ctx8) {
  GRect bounds = layer_get_unobstructed_bounds(a);
 
   #ifdef PBL_ROUND
- //   bounds = GRect(0, ROUND_VERTICAL_PADDING, bounds.size.w, bounds.size.h - ROUND_VERTICAL_PADDING * 2);
-     bounds = GRect(0, 90, 180, 90);
+    bounds = GRect(0, 90, 180, 90);
   #else
-     bounds = GRect(0,84,144,84);
+    bounds = GRect(0,bounds.size.h/2,bounds.size.w,bounds.size.h/2);
   #endif
-  // initialize FCTX, the fancy 3rd party drawing library that all the cool kids use
+  
   FContext fctx1;
 
   fctx_init_context(&fctx1, ctx8);
@@ -203,15 +196,11 @@ void update_minute_area_layer(Layer *a, GContext* ctx8) {
 
 
   // calculate font size
- // int font_size = 4 * bounds.size.h / 7;
-//  int font_size2 = bounds.size.h/2.5; //opensans
 #ifdef PBL_ROUND
   int font_size2 = bounds.size.h * 1.0; 
  #else
   int font_size2 = bounds.size.h * 1.1;
   #endif
-  // avenir + avenir bold metrics
-//  int v_padding2 = bounds.size.h / 16;
   int h_adjust2 = 0;
   int v_adjust2 = 0;
 
@@ -219,23 +208,17 @@ void update_minute_area_layer(Layer *a, GContext* ctx8) {
     #ifdef PBL_COLOR
       fctx_enable_aa(true);
     #endif
-  
-
-  // if it's a round watch, EVERYTHING CHANGES
+ 
   #ifdef PBL_ROUND
- //   v_adjust2 = ROUND_VERTICAL_PADDING;
      v_adjust2 = 0;
 
   #else
-    // for rectangular watches, adjust X position based on sidebar position
- //     h_adjust2 -= ACTION_BAR_WIDTH / 2 + 1;
      h_adjust2 = 0;
   #endif
 
   FPoint time_pos2;
   fctx_begin_fill(&fctx1);
   fctx_set_text_em_height(&fctx1, time_font, font_size2);
-//  fctx_set_text_em_height(&fctx, minutes_font, font_size);
 
   int mindraw;
   mindraw = s_minutes;
@@ -243,15 +226,10 @@ void update_minute_area_layer(Layer *a, GContext* ctx8) {
   snprintf(minnow, sizeof(minnow), "%02d", mindraw);
   
   //draw minutes
- // time_pos2.x = INT_TO_FIXED(bounds.size.w / 2 + h_adjust2);
-  //time_pos2.y = INT_TO_FIXED(bounds.size.h - v_padding2 + v_adjust2);
-//  time_pos2.x = INT_TO_FIXED(PBL_IF_ROUND_ELSE(bounds.size.w, bounds.size.w) + h_adjust2);
-//  time_pos2.y = INT_TO_FIXED(bounds.size.h  + v_adjust2);
-  time_pos2.x = INT_TO_FIXED(PBL_IF_ROUND_ELSE(90, 96) + h_adjust2);
-  time_pos2.y = INT_TO_FIXED(PBL_IF_ROUND_ELSE(132, 126)  + v_adjust2);
+  time_pos2.x = INT_TO_FIXED(PBL_IF_ROUND_ELSE(90, bounds.size.w*2/3) + h_adjust2);
+  time_pos2.y = INT_TO_FIXED(PBL_IF_ROUND_ELSE(132, bounds.size.h*3/2)  + v_adjust2);
   
   fctx_set_offset(&fctx1, time_pos2);
-//  fctx_draw_string(&fctx1, minnow, time_font, GTextAlignmentCenter, FTextAnchorBaseline);
   fctx_draw_string(&fctx1, minnow, time_font, PBL_IF_ROUND_ELSE (GTextAlignmentCenter,GTextAlignmentRight), FTextAnchorMiddle);
   fctx_end_fill(&fctx1);
 
@@ -262,46 +240,84 @@ void update_minute_area_layer(Layer *a, GContext* ctx8) {
 
 static void layer_update_proc(Layer * layer1, GContext * ctx){
   // Create Rects
-  GRect bounds1 = layer_get_bounds(layer1);
+  GRect bounds = layer_get_bounds(layer1);
   
   GRect MediumBand =
     PBL_IF_ROUND_ELSE(
     GRect(8, 75, 36, 30),
-    GRect(102, 68, 36, 32));
+    GRect(bounds.size.w * 102/144, bounds.size.h * 68/168, bounds.size.w/4, bounds.size.h * 32/168));
   
   
    //Build display
   graphics_context_set_fill_color(ctx, settings.Back1Color);
-  graphics_fill_rect(ctx, bounds1, 0, GCornerNone);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
   graphics_context_set_fill_color(ctx, settings.FrameColor1);
+  #ifdef PBL_PLATFORM_EMERY
+  graphics_fill_rect(ctx, MediumBand,6,GCornersAll);
+  #else
   graphics_fill_rect(ctx, MediumBand,4,GCornersAll);
+  #endif
  
   
-
-GRect ampmRect = 
-    (PBL_IF_ROUND_ELSE(
-      GRect(136, 84, 40, 40),
-      GRect(100, -6, 40, 28)));
- 
- GRect DateRect = 
-  (PBL_IF_ROUND_ELSE(
-      GRect(6, 54, 40, 16),
-      GRect(100, 46, 40, 16)));
+#ifdef PBL_PLATFORM_EMERY
+  GRect ampmRect = 
+      GRect(bounds.size.w * 100/144 + 2, bounds.size.h * -3/168, bounds.size.w * 40/144, bounds.size.h * 28/168);
+        // GRect(100, -6, 40, 28)));
   
   GRect DateRect2 = 
-    (PBL_IF_ROUND_ELSE(
-      GRect(6, 71, 40, 40),
-      GRect(100, 65, 40, 40)));
+        GRect(bounds.size.w * 100/144 + 2, (bounds.size.h * 65/168) + 6, bounds.size.w * 40/144, bounds.size.h * 40/168);
+        // GRect(100, 65, 40, 40)
 
+  GRect DateRect = 
+      GRect(bounds.size.w * 100/144 + 1, bounds.size.h * 46/168 - 6, bounds.size.w * 40/144, bounds.size.h * 16/168);
+    
   GRect MonthRect = 
-    (PBL_IF_ROUND_ELSE(
-      GRect(6, 102, 40, 16),
-      GRect(100, 98, 40, 16)));
+     GRect(bounds.size.w * 100/144 + 1, bounds.size.h * 98/168 , bounds.size.w * 40/144, bounds.size.h * 16/168);
+    
       
   GRect BatteryRect =
-   (PBL_IF_ROUND_ELSE(
+     GRect(bounds.size.w * 100/144 + 1, bounds.size.h * 148/168 - 6, bounds.size.w * 40/144, bounds.size.h * 20/168);
+    
+
+#else
+  GRect ampmRect = 
+      PBL_IF_ROUND_ELSE(
+        GRect(136, 84, 40, 40),
+        GRect(bounds.size.w * 100/144, bounds.size.h * -6/168, bounds.size.w * 40/144, bounds.size.h * 28/168));
+        // GRect(100, -6, 40, 28)));
+  
+  GRect DateRect2 = 
+      PBL_IF_ROUND_ELSE(
+        GRect(6, 71, 40, 40),
+        GRect(bounds.size.w * 100/144, bounds.size.h * 65/168, bounds.size.w * 40/144, bounds.size.h * 40/168));
+        // GRect(100, 65, 40, 40)));
+
+  GRect DateRect = 
+      PBL_IF_ROUND_ELSE(
+          GRect(6, 54, 40, 16),
+          GRect(bounds.size.w * 100/144, bounds.size.h * 46/168, bounds.size.w * 40/144, bounds.size.h * 16/168));
+          // GRect(100, 46, 40, 16)
+
+
+  GRect MonthRect = 
+    PBL_IF_ROUND_ELSE(
+      GRect(6, 102, 40, 16),
+      GRect(bounds.size.w * 100/144, bounds.size.h * 98/168, bounds.size.w * 40/144, bounds.size.h * 16/168));
+      // GRect(100, 98, 40, 16)
+
+      
+  GRect BatteryRect =
+   PBL_IF_ROUND_ELSE(
       GRect(6,120,40,20),
-      GRect(100,148, 40, 20)));
+      GRect(bounds.size.w * 100/144, bounds.size.h * 148/168, bounds.size.w * 40/144, bounds.size.h * 20/168));
+      // GRect(100,148, 40, 20)
+
+#endif
+
+
+  
+
+  
     
   //Date
   // Local language
@@ -364,12 +380,19 @@ GRect ampmRect =
 
 static void layer_update_proc_bt(Layer * layer3, GContext * ctx3){
    // Create Rects
- 
+  GRect bounds = layer_get_bounds(layer3);
+
+  #ifdef PBL_PLATFORM_EMERY
+   GRect BTIconRect = 
+      GRect(bounds.size.w * 100/144 + 1, bounds.size.h * 118/168 + 3, bounds.size.w * 40/144, bounds.size.h * 20/168);
+  #else
   GRect BTIconRect = 
     (PBL_IF_ROUND_ELSE(
       GRect(6,40,40,20),
-      GRect(100,118,40,20)));
-  
+      GRect(bounds.size.w * 100/144, bounds.size.h * 118/168, bounds.size.w * 40/144, bounds.size.h * 20/168)
+      // GRect(100,118,40,20)
+    ));
+  #endif
 
  bluetooth_callback(connection_service_peek_pebble_app_connection());
   
@@ -379,10 +402,21 @@ static void layer_update_proc_bt(Layer * layer3, GContext * ctx3){
 
 static void layer_update_proc_qt(Layer * layer4, GContext * ctx4){
    // Create Rects
+
+ GRect bounds = layer_get_bounds(layer4);
+ 
+ #ifdef PBL_PLATFORM_EMERY
+   GRect QTIconRect = 
+      GRect(bounds.size.w * 100/144 + 1, bounds.size.h * 136/168 - 1, bounds.size.w * 40/144, bounds.size.h * 20/168);
+ #else
+
  GRect QTIconRect = 
     (PBL_IF_ROUND_ELSE(
       GRect(8,136,40,20),
-      GRect(100,136,40,20)));
+      GRect(bounds.size.w * 100/144, bounds.size.h * 136/168, bounds.size.w * 40/144, bounds.size.h * 20/168)
+      // GRect(100,136,40,20)
+    ));
+ #endif
   
  quiet_time_icon();
     
@@ -460,7 +494,25 @@ static void prv_inbox_received_handler(DictionaryIterator * iter, void * context
   if (tx6_color_t){
     settings.Text6Color = GColorFromHEX(tx6_color_t-> value -> int32);
     }
-  
+
+  Tuple * addzero12_t = dict_find(iter, MESSAGE_KEY_AddZero12h);
+  Tuple * remzero24_t = dict_find(iter, MESSAGE_KEY_RemoveZero24h);
+  Tuple * vibe_t = dict_find(iter, MESSAGE_KEY_BTVibeOn);
+
+    if (addzero12_t) {
+      settings.AddZero12h = addzero12_t->value->int32 == 1;
+    //  layer_mark_dirty(g_layer);
+    }
+
+    if (remzero24_t) {
+      settings.RemoveZero24h = remzero24_t->value->int32 == 1;
+    //  layer_mark_dirty(g_layer);
+    }
+
+    if (vibe_t) {
+      settings.BTVibeOn = vibe_t->value->int32 == 1;
+    //  layer_mark_dirty(s_canvas_bt_icon);
+    }
   
   //End data gathered
   // Get display handlers
@@ -474,7 +526,7 @@ static void prv_inbox_received_handler(DictionaryIterator * iter, void * context
   } */
   
   
-  //Update colors
+  //Update colors & hour settings
   layer_mark_dirty(s_canvas);
   layer_mark_dirty(s_canvas_bt_icon);
   layer_mark_dirty(s_canvas_qt_icon);
@@ -582,14 +634,20 @@ static void init(){
   // Load Fonts
  
   time_font =  ffont_create_from_resource(RESOURCE_ID_OSWALD_FFONT);
- //  time_font =  ffont_create_from_resource(RESOURCE_ID_FONT_STEELFISH);
- // time_font = ffont_create_from_resource(RESOURCE_ID_FONT_DINCONBOLD);
+  
+ #ifdef PBL_PLATFORM_EMERY
+  FontDate = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
+  FontDate2 = fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK);
+  FontBattery= fonts_get_system_font(PBL_IF_ROUND_ELSE(FONT_KEY_GOTHIC_14,FONT_KEY_GOTHIC_28_BOLD));
+  FontIcon2 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DRIPICONS_18));
+  FontIcon3 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DRIPICONS_20));
+ #else
   FontDate = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   FontDate2 = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
   FontBattery= fonts_get_system_font(PBL_IF_ROUND_ELSE(FONT_KEY_GOTHIC_14,FONT_KEY_GOTHIC_18_BOLD));
-  //FontIcon = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_WEATHERICONS_20));
   FontIcon2 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DRIPICONS_16));
   FontIcon3 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DRIPICONS_18));
+#endif
  
   main_window_push();
   // Register with Event Services
